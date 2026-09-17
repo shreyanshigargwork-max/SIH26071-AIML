@@ -93,12 +93,21 @@ function Dashboard() {
           </p>
 
           <h2 className="text-3xl font-bold text-orange-500 mt-2">
-            {prediction ? prediction.rain_prediction : "Not tested"}
+            {prediction
+              ? prediction.rain_prediction
+              : "Not tested"}
           </h2>
 
           <p className="text-sm text-slate-500 mt-2">
             ML model result
           </p>
+
+          {prediction && (
+            <p className="text-sm font-medium text-blue-600 mt-2">
+              Predicted rainfall:{" "}
+              {prediction.predicted_rainfall_mm} mm
+            </p>
+          )}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-5">
@@ -150,6 +159,7 @@ function Dashboard() {
           {loading ? "Predicting..." : "Run Prediction"}
         </button>
 
+        {/* Prediction Result */}
         {prediction && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
 
@@ -161,6 +171,10 @@ function Dashboard() {
               <p className="text-2xl font-bold text-blue-600 mt-2">
                 {prediction.rain_prediction}
               </p>
+
+              <p className="text-sm text-slate-500 mt-2">
+                ML classification result
+              </p>
             </div>
 
             <div className="border rounded-lg p-4">
@@ -171,11 +185,16 @@ function Dashboard() {
               <p className="text-2xl font-bold text-blue-600 mt-2">
                 {prediction.predicted_rainfall_mm} mm
               </p>
+
+              <p className="text-sm text-slate-500 mt-2">
+                Expected rainfall value
+              </p>
             </div>
 
           </div>
         )}
 
+        {/* Error */}
         {error && (
           <div className="bg-red-50 text-red-600 p-4 rounded-lg mt-4">
             {error}
@@ -187,6 +206,7 @@ function Dashboard() {
       {/* Monitoring Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
 
+        {/* Rainfall Status */}
         <div className="bg-white rounded-xl shadow-sm p-6">
 
           <h2 className="text-xl font-semibold text-slate-800">
@@ -213,6 +233,7 @@ function Dashboard() {
 
         </div>
 
+        {/* Flood Risk */}
         <div className="bg-white rounded-xl shadow-sm p-6">
 
           <h2 className="text-xl font-semibold text-slate-800">
@@ -220,15 +241,15 @@ function Dashboard() {
           </h2>
 
           <p className="text-sm text-slate-500 mt-5">
-            Current Risk Level
+            Current Monitoring Status
           </p>
 
           <p className="text-3xl font-bold text-orange-500 mt-2">
-            {prediction ? prediction.rain_prediction : "Moderate"}
+            Monitoring
           </p>
 
           <p className="text-sm text-slate-500 mt-4">
-            Monitor rainfall and flood-risk conditions for changes.
+            Flood-risk visualization is available in the Map section.
           </p>
 
         </div>
@@ -308,7 +329,8 @@ function Dashboard() {
             </div>
 
             <p className="text-sm text-slate-500 mt-1">
-              Current rainfall levels indicate moderate flood-risk conditions.
+              Current rainfall levels indicate moderate
+              flood-risk conditions.
             </p>
 
           </div>
