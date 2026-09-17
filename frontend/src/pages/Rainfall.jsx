@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -9,57 +10,108 @@ import {
 } from "recharts";
 
 function Rainfall() {
-  const rainfallData = [
-    { day: "Mon", rainfall: 18 },
-    { day: "Tue", rainfall: 32 },
-    { day: "Wed", rainfall: 25 },
-    { day: "Thu", rainfall: 42 },
-    { day: "Fri", rainfall: 35 },
-    { day: "Sat", rainfall: 28 },
-    { day: "Sun", rainfall: 42 },
-  ];
+  const [weather, setWeather] = useState(null);
+  const [forecast, setForecast] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getRainfall = async () => {
+      try {
+        const response = await fetch(
+          "https://api.open-meteo.com/v1/forecast?latitude=26.9124&longitude=75.7873&current=temperature_2m,relative_humidity_2m,rain,pressure_msl,wind_speed_10m&daily=rain_sum&forecast_days=7&timezone=auto"
+        );
+
+        if (!response.ok) {
+          throw new Error("Weather API failed");
+        }
+
+        const data = await response.json();
+
+        setWeather(data.current);
+
+        const days = data.daily.time.map((date, index) => ({
+          day: new Date(date).toLocaleDateString("en-US", {
+            weekday: "short",
+          }),
+          rainfall: data.daily.rain_sum[index],
+        }));
+
+        setForecast(days);
+      } catch (error) {
+        console.error("Rainfall error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getRainfall();
+  }, []);
+
+  const currentRain = weather?.rain ?? 0;
+
+  const weeklyTotal = forecast.reduce(
+    (total, item) => total + item.rainfall,
+    0
+  );
+
+  const highestRainfall =
+    forecast.length > 0
+      ? Math.max(...forecast.map((item) => item.rainfall))
+      : 0;
+
+  const averageRainfall =
+    forecast.length > 0
+      ? weeklyTotal / forecast.length
+      : 0;
+
+  let rainfallStatus = "Normal";
+
+  if (currentRain > 30) {
+    rainfallStatus = "High";
+  } else if (currentRain > 10) {
+    rainfallStatus = "Moderate";
+  }
 
   return (
     <div>
-      {/* Header */}
+      {/* Heading */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-800">
           Rainfall Monitoring
         </h1>
 
         <p className="text-slate-500 mt-2">
-          Monitor rainfall levels and recent weather conditions.
+          Monitor current rainfall and the upcoming 7-day rainfall forecast.
         </p>
       </div>
 
-      {/* KPI Cards */}
+      {/* Current Rainfall Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-
         <div className="bg-white rounded-xl shadow-sm p-6">
           <p className="text-sm text-slate-500">
-            🌧️ Last 24 Hours
+            🌧️ Current Rainfall
           </p>
 
           <h2 className="text-4xl font-bold text-blue-600 mt-3">
-            42 mm
+            {loading ? "Loading..." : `${currentRain} mm`}
           </h2>
 
           <p className="text-sm text-slate-500 mt-2">
-            Recorded rainfall
+            Live weather data
           </p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6">
           <p className="text-sm text-slate-500">
-            📊 Last 7 Days
+            📊 7-Day Forecast
           </p>
 
           <h2 className="text-4xl font-bold text-blue-600 mt-3">
-            222 mm
+            {loading ? "Loading..." : `${weeklyTotal.toFixed(1)} mm`}
           </h2>
 
           <p className="text-sm text-slate-500 mt-2">
-            Total weekly rainfall
+            Expected rainfall
           </p>
         </div>
 
@@ -69,89 +121,90 @@ function Rainfall() {
           </p>
 
           <h2 className="text-3xl font-bold text-orange-500 mt-3">
-            Moderate
+            {loading ? "Loading..." : rainfallStatus}
           </h2>
 
           <p className="text-sm text-slate-500 mt-2">
-            Rainfall intensity
+            Based on current rainfall
           </p>
         </div>
-
       </div>
 
-      {/* Rainfall Graph */}
+      {/* Rainfall Chart */}
       <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
-
         <h2 className="text-xl font-semibold text-slate-800">
-          🌧️ Rainfall Trend
+          🌧️ 7-Day Rainfall Forecast
         </h2>
 
         <p className="text-sm text-slate-500 mt-1">
-          Rainfall recorded during the last 7 days
+          Forecast rainfall for Jaipur
         </p>
 
         <div className="h-80 mt-6">
+          {loading ? (
+            <div className="h-full flex items-center justify-center text-slate-500">
+              Loading rainfall data...
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={forecast}>
+                <CartesianGrid strokeDasharray="3 3" />
 
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={rainfallData}>
+                <XAxis dataKey="day" />
 
-              <CartesianGrid strokeDasharray="3 3" />
+                <YAxis />
 
-              <XAxis dataKey="day" />
+                <Tooltip />
 
-              <YAxis />
-
-              <Tooltip />
-
-              <Line
-                type="monotone"
-                dataKey="rainfall"
-                stroke="#2563eb"
-                strokeWidth={3}
-                dot={{ r: 5 }}
-              />
-
-            </LineChart>
-          </ResponsiveContainer>
-
+                <Line
+                  type="monotone"
+                  dataKey="rainfall"
+                  stroke="#2563eb"
+                  strokeWidth={3}
+                  dot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
-
       </div>
 
       {/* Rainfall Analysis */}
       <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
-
         <h2 className="text-xl font-semibold text-slate-800">
           📈 Rainfall Analysis
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
-
           <div className="border rounded-lg p-4">
             <p className="text-sm text-slate-500">
-              Highest Rainfall
+              Highest Forecast Rainfall
             </p>
 
             <p className="text-2xl font-bold text-blue-600 mt-2">
-              42 mm
+              {loading
+                ? "Loading..."
+                : `${highestRainfall.toFixed(1)} mm`}
             </p>
 
             <p className="text-sm text-slate-500 mt-1">
-              Thursday & Sunday
+              Next 7 days
             </p>
           </div>
 
           <div className="border rounded-lg p-4">
             <p className="text-sm text-slate-500">
-              Average Rainfall
+              Average Forecast Rainfall
             </p>
 
             <p className="text-2xl font-bold text-slate-800 mt-2">
-              31.7 mm
+              {loading
+                ? "Loading..."
+                : `${averageRainfall.toFixed(1)} mm`}
             </p>
 
             <p className="text-sm text-slate-500 mt-1">
-              Last 7 days
+              Daily average
             </p>
           </div>
 
@@ -165,35 +218,74 @@ function Rainfall() {
             </p>
 
             <p className="text-sm text-slate-500 mt-1">
-              Data monitoring enabled
+              Live data monitoring enabled
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Current Weather */}
+      <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
+        <h2 className="text-xl font-semibold text-slate-800">
+          🌦️ Current Weather
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+          <div className="border rounded-lg p-4">
+            <p className="text-sm text-slate-500">
+              Temperature
+            </p>
+
+            <p className="text-2xl font-bold text-slate-800 mt-2">
+              {loading
+                ? "Loading..."
+                : `${weather?.temperature_2m}°C`}
             </p>
           </div>
 
-        </div>
+          <div className="border rounded-lg p-4">
+            <p className="text-sm text-slate-500">
+              Humidity
+            </p>
 
+            <p className="text-2xl font-bold text-blue-600 mt-2">
+              {loading
+                ? "Loading..."
+                : `${weather?.relative_humidity_2m}%`}
+            </p>
+          </div>
+
+          <div className="border rounded-lg p-4">
+            <p className="text-sm text-slate-500">
+              Pressure
+            </p>
+
+            <p className="text-2xl font-bold text-slate-800 mt-2">
+              {loading
+                ? "Loading..."
+                : `${weather?.pressure_msl} hPa`}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Location Information */}
+      {/* Location */}
       <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
-
         <h2 className="text-xl font-semibold text-slate-800">
           📍 Monitoring Location
         </h2>
 
         <div className="mt-4 border rounded-lg p-4">
-
           <p className="font-semibold text-slate-800">
             Jaipur, Rajasthan
           </p>
 
           <p className="text-sm text-slate-500 mt-1">
-            Rainfall conditions are being monitored for flood-risk awareness.
+            Live rainfall and forecast conditions are being monitored
+            for flood-risk awareness.
           </p>
-
         </div>
-
       </div>
-
     </div>
   );
 }

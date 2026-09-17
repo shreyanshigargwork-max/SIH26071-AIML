@@ -1,9 +1,31 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function Dashboard() {
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [weather, setWeather] = useState(null);
+
+  useEffect(() => {
+    const getWeather = async () => {
+      try {
+        const response = await fetch(
+          "https://api.open-meteo.com/v1/forecast?latitude=26.9124&longitude=75.7873&current=temperature_2m,relative_humidity_2m,rain,pressure_msl,wind_speed_10m"
+        );
+
+        if (!response.ok) {
+          throw new Error("Weather API failed");
+        }
+
+        const data = await response.json();
+        setWeather(data.current);
+      } catch (err) {
+        console.error("Weather error:", err);
+      }
+    };
+
+    getWeather();
+  }, []);
 
   const getPrediction = async () => {
     setLoading(true);
@@ -16,18 +38,18 @@ function Dashboard() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          temperature: 28,
-          humidity: 75,
-          rainfall: 42,
-          pressure: 1010,
-          wind_speed: 10,
-          rainfall_3h: 20,
-          rainfall_6h: 30,
-          rainfall_12h: 38,
-          rainfall_24h: 42,
-          hour: 12,
-          day_of_week: 3,
-          month: 9,
+          temperature: weather?.temperature_2m ?? 28,
+          humidity: weather?.relative_humidity_2m ?? 75,
+          rainfall: weather?.rain ?? 42,
+          pressure: weather?.pressure_msl ?? 1010,
+          wind_speed: weather?.wind_speed_10m ?? 10,
+          rainfall_3h: weather?.rain ?? 20,
+          rainfall_6h: weather?.rain ?? 30,
+          rainfall_12h: weather?.rain ?? 38,
+          rainfall_24h: weather?.rain ?? 42,
+          hour: new Date().getHours(),
+          day_of_week: new Date().getDay(),
+          month: new Date().getMonth() + 1,
           latitude: 26.9124,
           longitude: 75.7873,
         }),
@@ -46,6 +68,8 @@ function Dashboard() {
     }
   };
 
+  const currentRain = weather?.rain ?? 0;
+
   return (
     <div>
       {/* Header */}
@@ -61,9 +85,7 @@ function Dashboard() {
 
       {/* Location */}
       <div className="bg-white rounded-xl shadow-sm p-5">
-        <p className="text-sm text-slate-500">
-          Current Location
-        </p>
+        <p className="text-sm text-slate-500">Current Location</p>
 
         <h2 className="text-xl font-semibold text-slate-800 mt-1">
           📍 Jaipur, Rajasthan
@@ -72,30 +94,27 @@ function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-6">
-
+        {/* Rainfall */}
         <div className="bg-white rounded-xl shadow-sm p-5">
-          <p className="text-sm text-slate-500">
-            🌧️ Rainfall
-          </p>
+          <p className="text-sm text-slate-500">🌧️ Rainfall</p>
 
           <h2 className="text-3xl font-bold text-blue-600 mt-2">
-            42 mm
+            {weather ? `${weather.rain} mm` : "Loading..."}
           </h2>
 
           <p className="text-sm text-slate-500 mt-2">
-            Last 24 hours
+            Current rainfall
           </p>
         </div>
 
+        {/* Rain Prediction */}
         <div className="bg-white rounded-xl shadow-sm p-5">
           <p className="text-sm text-slate-500">
             🌊 Rain Prediction
           </p>
 
           <h2 className="text-3xl font-bold text-orange-500 mt-2">
-            {prediction
-              ? prediction.rain_prediction
-              : "Not tested"}
+            {prediction ? prediction.rain_prediction : "Not tested"}
           </h2>
 
           <p className="text-sm text-slate-500 mt-2">
@@ -104,19 +123,19 @@ function Dashboard() {
 
           {prediction && (
             <p className="text-sm font-medium text-blue-600 mt-2">
-              Predicted rainfall:{" "}
-              {prediction.predicted_rainfall_mm} mm
+              Predicted rainfall: {prediction.predicted_rainfall_mm} mm
             </p>
           )}
         </div>
 
+        {/* Temperature */}
         <div className="bg-white rounded-xl shadow-sm p-5">
           <p className="text-sm text-slate-500">
             🌡️ Temperature
           </p>
 
           <h2 className="text-3xl font-bold text-slate-800 mt-2">
-            28°C
+            {weather ? `${weather.temperature_2m}°C` : "Loading..."}
           </h2>
 
           <p className="text-sm text-slate-500 mt-2">
@@ -124,31 +143,75 @@ function Dashboard() {
           </p>
         </div>
 
+        {/* Dynamic Alerts */}
         <div className="bg-white rounded-xl shadow-sm p-5">
           <p className="text-sm text-slate-500">
             🚨 Active Alerts
           </p>
 
           <h2 className="text-3xl font-bold text-red-500 mt-2">
-            2
+            {currentRain > 10 ? 2 : 0}
           </h2>
 
           <p className="text-sm text-slate-500 mt-2">
-            Requires attention
+            Based on current rainfall
           </p>
         </div>
+      </div>
 
+      {/* Current Weather */}
+      <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
+        <h2 className="text-xl font-semibold text-slate-800">
+          🌦️ Current Weather
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5">
+          <div className="border rounded-lg p-4">
+            <p className="text-sm text-slate-500">
+              Humidity
+            </p>
+
+            <p className="text-2xl font-bold text-blue-600 mt-2">
+              {weather
+                ? `${weather.relative_humidity_2m}%`
+                : "Loading..."}
+            </p>
+          </div>
+
+          <div className="border rounded-lg p-4">
+            <p className="text-sm text-slate-500">
+              Pressure
+            </p>
+
+            <p className="text-2xl font-bold text-slate-800 mt-2">
+              {weather
+                ? `${weather.pressure_msl} hPa`
+                : "Loading..."}
+            </p>
+          </div>
+
+          <div className="border rounded-lg p-4">
+            <p className="text-sm text-slate-500">
+              Wind Speed
+            </p>
+
+            <p className="text-2xl font-bold text-slate-800 mt-2">
+              {weather
+                ? `${weather.wind_speed_10m} km/h`
+                : "Loading..."}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* AI Prediction */}
       <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
-
         <h2 className="text-xl font-semibold text-slate-800">
           🤖 AI Rainfall Prediction
         </h2>
 
         <p className="text-sm text-slate-500 mt-1">
-          Send weather data to the trained ML model.
+          Send current weather data to the trained ML model.
         </p>
 
         <button
@@ -159,10 +222,8 @@ function Dashboard() {
           {loading ? "Predicting..." : "Run Prediction"}
         </button>
 
-        {/* Prediction Result */}
         {prediction && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
-
             <div className="border rounded-lg p-4">
               <p className="text-sm text-slate-500">
                 Rain Prediction
@@ -190,25 +251,20 @@ function Dashboard() {
                 Expected rainfall value
               </p>
             </div>
-
           </div>
         )}
 
-        {/* Error */}
         {error && (
           <div className="bg-red-50 text-red-600 p-4 rounded-lg mt-4">
             {error}
           </div>
         )}
-
       </div>
 
-      {/* Monitoring Overview */}
+      {/* Monitoring */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-
         {/* Rainfall Status */}
         <div className="bg-white rounded-xl shadow-sm p-6">
-
           <h2 className="text-xl font-semibold text-slate-800">
             🌧️ Rainfall Status
           </h2>
@@ -219,23 +275,26 @@ function Dashboard() {
             </span>
 
             <span className="text-sm font-semibold text-blue-600">
-              42 mm
+              {weather ? `${weather.rain} mm` : "Loading..."}
             </span>
           </div>
 
           <div className="w-full bg-slate-200 rounded-full h-3">
-            <div className="bg-blue-500 h-3 rounded-full w-[65%]"></div>
+            <div
+              className="bg-blue-500 h-3 rounded-full"
+              style={{
+                width: `${Math.min(currentRain * 5, 100)}%`,
+              }}
+            ></div>
           </div>
 
           <p className="text-sm text-slate-500 mt-3">
             Rainfall conditions are being monitored continuously.
           </p>
-
         </div>
 
-        {/* Flood Risk */}
+        {/* Flood Risk Status */}
         <div className="bg-white rounded-xl shadow-sm p-6">
-
           <h2 className="text-xl font-semibold text-slate-800">
             🌊 Flood Risk Status
           </h2>
@@ -251,22 +310,17 @@ function Dashboard() {
           <p className="text-sm text-slate-500 mt-4">
             Flood-risk visualization is available in the Map section.
           </p>
-
         </div>
-
       </div>
 
       {/* Map Preview */}
       <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
-
         <h2 className="text-xl font-semibold text-slate-800">
           🗺️ Flood Risk Map
         </h2>
 
         <div className="h-72 bg-slate-200 rounded-xl mt-4 flex items-center justify-center">
-
           <div className="text-center">
-
             <div className="text-5xl mb-3">
               🗺️
             </div>
@@ -278,67 +332,60 @@ function Dashboard() {
             <p className="text-sm text-slate-500 mt-1">
               Open the Map section for detailed visualization.
             </p>
-
           </div>
-
         </div>
-
       </div>
 
-      {/* Recent Alerts */}
+      {/* Dynamic Alerts */}
       <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
-
         <h2 className="text-xl font-semibold text-slate-800">
-          🚨 Recent Alerts
+          🚨 Current Alerts
         </h2>
 
         <div className="space-y-3 mt-4">
+          {weather && weather.rain > 10 ? (
+            <div className="border-l-4 border-red-500 bg-red-50 p-4 rounded">
+              <div className="flex justify-between">
+                <p className="font-semibold text-slate-800">
+                  Heavy Rainfall Alert
+                </p>
 
-          <div className="border-l-4 border-red-500 bg-red-50 p-4 rounded">
+                <span className="text-sm font-medium text-red-600">
+                  High
+                </span>
+              </div>
 
-            <div className="flex justify-between">
-
-              <p className="font-semibold text-slate-800">
-                Heavy Rainfall Alert
+              <p className="text-sm text-slate-500 mt-1">
+                Current rainfall is above the monitoring threshold.
               </p>
 
-              <span className="text-sm font-medium text-red-600">
-                High
-              </span>
-
+              <p className="text-xs text-slate-400 mt-2">
+                Current rainfall: {weather.rain} mm
+              </p>
             </div>
+          ) : (
+            <div className="border-l-4 border-green-500 bg-green-50 p-4 rounded">
+              <div className="flex justify-between">
+                <p className="font-semibold text-slate-800">
+                  Normal Weather Conditions
+                </p>
 
-            <p className="text-sm text-slate-500 mt-1">
-              Heavy rainfall has been detected.
-            </p>
+                <span className="text-sm font-medium text-green-600">
+                  Normal
+                </span>
+              </div>
 
-          </div>
-
-          <div className="border-l-4 border-orange-500 bg-orange-50 p-4 rounded">
-
-            <div className="flex justify-between">
-
-              <p className="font-semibold text-slate-800">
-                Moderate Flood Risk
+              <p className="text-sm text-slate-500 mt-1">
+                No heavy rainfall alert is currently detected.
               </p>
 
-              <span className="text-sm font-medium text-orange-600">
-                Moderate
-              </span>
-
+              <p className="text-xs text-slate-400 mt-2">
+                Current rainfall: {currentRain} mm
+              </p>
             </div>
-
-            <p className="text-sm text-slate-500 mt-1">
-              Current rainfall levels indicate moderate
-              flood-risk conditions.
-            </p>
-
-          </div>
-
+          )}
         </div>
-
       </div>
-
     </div>
   );
 }
