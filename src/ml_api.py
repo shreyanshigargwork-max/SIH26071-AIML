@@ -1,12 +1,27 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .predict import predict_weather
+
 
 app = FastAPI(
     title="SIH26071 Weather ML API",
     description="Rain and next-hour rainfall prediction API",
     version="1.0"
+)
+
+
+# Allow React frontend to connect
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
